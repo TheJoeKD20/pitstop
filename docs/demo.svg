@@ -1,0 +1,46 @@
+<svg width="820" height="440" viewBox="0 0 820 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pitstop terminal demo: set a breakpoint, drop into a shell, resume">
+  <defs>
+    <style>
+      .mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; }
+      .dim { fill: #6e7681; }
+      .fg { fill: #c9d1d9; }
+      .green { fill: #3fb950; }
+      .cyan { fill: #39c5cf; }
+      .magenta { fill: #d6336c; }
+      .yellow { fill: #d29922; }
+      .bold { font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- window -->
+  <rect x="0" y="0" width="820" height="440" rx="10" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <rect x="0" y="0" width="820" height="34" rx="10" fill="#161b22"/>
+  <rect x="0" y="24" width="820" height="10" fill="#161b22"/>
+  <circle cx="20" cy="17" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="17" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="17" r="6" fill="#27c93f"/>
+  <text x="410" y="22" text-anchor="middle" class="mono dim">pitstop — debug your CI in the pit</text>
+
+  <g class="mono">
+    <text x="20" y="64"><tspan class="green bold">$</tspan> <tspan class="fg">pitstop run test --break unit</tspan></text>
+
+    <text x="20" y="92" class="dim">[2/4] Lint</text>
+    <text x="20" y="112"><tspan class="green">✓</tspan> <tspan class="fg">Lint</tspan></text>
+
+    <text x="20" y="148" class="magenta bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+    <text x="20" y="170"><tspan class="magenta bold">⏸  BREAKPOINT</tspan>  <tspan class="fg">before:</tspan> <tspan class="fg bold">Unit tests</tspan></text>
+    <text x="20" y="190" class="magenta bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+    <text x="20" y="210" class="dim">step id: unit   cwd: /github/workspace</text>
+
+    <text x="20" y="238"><tspan class="fg">What now?</tspan> <tspan class="fg bold">r</tspan><tspan class="fg">)un  </tspan><tspan class="fg bold">s</tspan><tspan class="fg">)hell  </tspan><tspan class="fg bold">k</tspan><tspan class="fg">)skip  </tspan><tspan class="fg bold">a</tspan><tspan class="fg">)bort &gt; </tspan><tspan class="cyan">s</tspan></text>
+
+    <text x="20" y="266" class="dim"># dropped into the container, exact env + filesystem state</text>
+    <text x="20" y="286"><tspan class="cyan bold">runner@unit</tspan><tspan class="fg">:/github/workspace$</tspan> <tspan class="fg">echo $NODE_ENV</tspan></text>
+    <text x="20" y="306" class="fg">test</text>
+    <text x="20" y="326"><tspan class="cyan bold">runner@unit</tspan><tspan class="fg">:/github/workspace$</tspan> <tspan class="fg">vim package.json   </tspan><tspan class="dim"># fix the typo, no commit needed</tspan></text>
+    <text x="20" y="346"><tspan class="cyan bold">runner@unit</tspan><tspan class="fg">:/github/workspace$</tspan> <tspan class="fg">exit</tspan></text>
+
+    <text x="20" y="382"><tspan class="fg">What now?</tspan> <tspan class="fg bold">r</tspan><tspan class="fg">)un  </tspan><tspan class="fg bold">s</tspan><tspan class="fg">)hell  </tspan><tspan class="fg bold">k</tspan><tspan class="fg">)skip  </tspan><tspan class="fg bold">a</tspan><tspan class="fg">)bort &gt; </tspan><tspan class="cyan">r</tspan></text>
+    <text x="20" y="410"><tspan class="green">✓</tspan> <tspan class="fg">Unit tests</tspan>   <tspan class="dim">— fixed in seconds, not a push/wait cycle</tspan></text>
+  </g>
+</svg>
