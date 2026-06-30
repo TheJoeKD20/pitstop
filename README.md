@@ -28,6 +28,24 @@
 
 ---
 
+<details>
+<summary><strong>📑 Contents</strong></summary>
+
+- [🛑 The problem](#-the-problem)
+- [🎯 Why Pitstop](#-why-pitstop)
+- [🚀 Quick start](#-quick-start)
+- [📖 How it works](#-how-it-works)
+- [✨ Commands](#-commands)
+- [🔐 Secrets](#-secrets)
+- [📦 Requirements](#-requirements)
+- [🗺️ Roadmap](#%EF%B8%8F-roadmap)
+- [🛠️ Contributing / development](#%EF%B8%8F-contributing--development)
+- [About](#about)
+
+</details>
+
+---
+
 ## 🛑 The problem
 
 You can't test a CI script without committing it. Every typo in a YAML file is a
