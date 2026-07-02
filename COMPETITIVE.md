@@ -1,9 +1,11 @@
 # Competitive landscape — where Pitstop's wedge is
 
 **One-line thesis:** every tool below can *run* CI locally. **None of them can
-pause before a step and drop you into an interactive shell at that exact state.**
+pause before a step and drop you into an interactive shell at that state.**
 That step-level breakpoint is Pitstop's headline feature and the whole reason to
-build it.
+build it. (v0.1 approximates the runner's state — see the README's
+supported-features table for what's faithfully reproduced and what isn't yet,
+e.g. `GITHUB_ENV` file commands and GitHub's fail-fast shell flags.)
 
 ---
 
@@ -25,7 +27,7 @@ print a message *and a next step*).
 
 | Tool | What it does | Pause mid-run? | Shell at a step's exact state? | Reuses your YAML? |
 | --- | --- | :---: | :---: | :---: |
-| **Pitstop** | Run a job locally **and breakpoint any step** | ✅ | ✅ | ✅ |
+| **Pitstop** | Run a job locally **and breakpoint any step** | ✅ | ✅ | ✅ (v0.1 subset — see the README's supported-features table; a file with a reusable-workflow job doesn't parse yet) |
 | [`act`](https://github.com/nektos/act) | Runs GitHub Actions locally | ❌ | ❌ | ✅ |
 | [Dagger](https://dagger.io) | Programmable CI engine / SDK | ❌ | ⚠️ (terminal in a Dagger pipeline, not your YAML) | ❌ (rewrite required) |
 | [`gitlab-ci-local`](https://github.com/firecow/gitlab-ci-local) | Runs GitLab pipelines locally | ❌ | ❌ | ✅ (GitLab) |
