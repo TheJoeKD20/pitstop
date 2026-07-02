@@ -1,6 +1,7 @@
+import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vitest";
 import { parseWorkflowDocument } from "../src/parser/workflow.js";
-import { runJob, type ExecutorReporter } from "../src/runner/executor.js";
+import { registerSignalCleanup, runJob, type ExecutorReporter } from "../src/runner/executor.js";
 import type { ContainerEngine, EngineStatus, ExecOptions } from "../src/runner/engine.js";
 import type { Prompter, PromptChoice } from "../src/ui.js";
 
@@ -69,6 +70,12 @@ const noopReporter: ExecutorReporter = {
   success: () => {},
   warn: () => {},
 };
+
+/** A reporter that records warnings so tests can assert on notices. */
+function recordingReporter(): ExecutorReporter & { warnings: string[] } {
+  const warnings: string[] = [];
+  return { ...noopReporter, warnings, warn: (msg: string) => warnings.push(msg) };
+}
 
 const wf = parseWorkflowDocument(
   {
@@ -196,5 +203,100 @@ describe("runJob", () => {
     );
     expect(engine.shellCalls).toHaveLength(1);
     expect(result.status).toBe("completed");
+  });
+
+  it("skips an if-guarded step with a notice instead of running it", async () => {
+    const guarded = parseWorkflowDocument(
+      {
+        jobs: {
+          build: {
+            "runs-on": "ubuntu-latest",
+            steps: [
+              { id: "always", name: "Always", run: "npm ci" },
+              {
+                id: "deploy",
+                name: "Deploy",
+                run: "npm run deploy",
+                if: "github.ref == 'refs/heads/main'",
+              },
+            ],
+          },
+        },
+      },
+      "wf.yml",
+    );
+    const engine = new FakeEngine();
+    const reporter = recordingReporter();
+    const result = await runJob(
+      baseOpts(engine, new ScriptedPrompter([]), {
+        workflow: guarded,
+        reporter,
+        secrets: { TOKEN: "real-secret" },
+      }),
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.executedSteps).toEqual(["always"]);
+    expect(engine.execCalls.map((c) => c.command)).toEqual(["npm ci"]);
+    const notice = reporter.warnings.find((w) => w.includes("if:"));
+    expect(notice).toBeDefined();
+    expect(notice).toContain("github.ref == 'refs/heads/main'");
+  });
+});
+
+describe("registerSignalCleanup", () => {
+  function setup(over: { keepContainer?: boolean } = {}) {
+    const engine = new FakeEngine();
+    const proc = new EventEmitter();
+    let exitCode: number | undefined;
+    let resolveExit!: () => void;
+    const exited = new Promise<void>((res) => (resolveExit = res));
+    const release = registerSignalCleanup({
+      engine,
+      handle: "container-123",
+      containerName: "pitstop-test",
+      keepContainer: over.keepContainer ?? false,
+      reporter: noopReporter,
+      proc,
+      exit: (code) => {
+        exitCode = code;
+        resolveExit();
+      },
+    });
+    return { engine, proc, exited, getExitCode: () => exitCode, release };
+  }
+
+  it("removes the container and exits 130 on SIGINT", async () => {
+    const { engine, proc, exited, getExitCode } = setup();
+    proc.emit("SIGINT");
+    await exited;
+    expect(getExitCode()).toBe(130);
+    expect(engine.removed).toBe(true);
+  });
+
+  it("exits 143 on SIGTERM", async () => {
+    const { engine, proc, exited, getExitCode } = setup();
+    proc.emit("SIGTERM");
+    await exited;
+    expect(getExitCode()).toBe(143);
+    expect(engine.removed).toBe(true);
+  });
+
+  it("honours --keep: leaves the container but still exits", async () => {
+    const { engine, proc, exited, getExitCode } = setup({ keepContainer: true });
+    proc.emit("SIGINT");
+    await exited;
+    expect(getExitCode()).toBe(130);
+    expect(engine.removed).toBe(false);
+  });
+
+  it("does nothing after the handlers are released", async () => {
+    const { engine, proc, release, getExitCode } = setup();
+    release();
+    proc.emit("SIGINT");
+    // Give any (buggy) async cleanup a chance to run.
+    await new Promise((res) => setImmediate(res));
+    expect(getExitCode()).toBeUndefined();
+    expect(engine.removed).toBe(false);
   });
 });

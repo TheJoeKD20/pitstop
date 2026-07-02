@@ -34,7 +34,13 @@ function renderPlan(plan: JobPlan): void {
   for (const step of plan.steps) {
     const marker = step.isBreak ? ui.raw.magenta("⏸ ") : "  ";
     const num = step.willRun ? ui.raw.dim(`${String(step.position).padStart(2)}.`) : ui.raw.dim(" — ");
-    const skipNote = step.willRun ? "" : ui.raw.dim("  (uses: — skipped in v0.1)");
+    let skipNote = "";
+    if (!step.willRun) {
+      skipNote =
+        step.kind === "uses"
+          ? ui.raw.dim("  (uses: — skipped in v0.1)")
+          : ui.raw.dim(`  (if: ${step.condition} — skipped, conditions not evaluated in v0.1)`);
+    }
     ui.info(`${marker}${num} ${step.label} ${ui.raw.dim(`[${step.id}]`)}${skipNote}`);
   }
 
@@ -152,6 +158,10 @@ export async function listCommand(workflowOpt?: string): Promise<number> {
     const job = getJob(workflow, jobId);
     const needs = job.needs.length > 0 ? ui.raw.dim(`  needs: ${job.needs.join(", ")}`) : "";
     ui.info(`\n${ui.raw.cyan(ui.raw.bold(jobId))}${job.name ? ui.raw.dim(`  (${job.name})`) : ""}${needs}`);
+    if (job.uses !== undefined) {
+      ui.warn(`    uses ${job.uses} — reusable-workflow jobs are skipped in v0.1.`);
+      continue;
+    }
     for (const step of job.steps) {
       const kind = step.run !== undefined ? ui.raw.green("run ") : ui.raw.yellow("uses");
       ui.info(`    ${kind} ${ui.raw.dim(`[${step.id}]`)} ${stepLabel(step)}`);

@@ -39,8 +39,13 @@ export interface WorkflowJob {
   id: string;
   /** The job's `name`, if any. */
   name?: string;
-  /** Raw `runs-on` value. */
-  runsOn: string | string[];
+  /**
+   * Reusable-workflow reference for a job-level `uses:` job. Such jobs are
+   * parsed (so the rest of the file stays usable) but are not runnable in v0.1.
+   */
+  uses?: string;
+  /** Raw `runs-on` value. Absent on reusable-workflow (`uses:`) jobs. */
+  runsOn?: string | string[];
   /** Job ids this job depends on (`needs`). */
   needs: string[];
   /** Job-level environment variables. */

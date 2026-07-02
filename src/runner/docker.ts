@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 import { PitstopError } from "../errors.js";
+import { assertSafeImageRef } from "./images.js";
+import { shellInvocation } from "./shell.js";
 import type {
   ContainerEngine,
   ContainerStartOptions,
@@ -66,6 +68,8 @@ export class DockerEngine implements ContainerEngine {
   }
 
   async start(opts: ContainerStartOptions): Promise<string> {
+    // Defence in depth: never let a flag-like value reach the docker argv.
+    assertSafeImageRef(opts.image, "passed to the container engine");
     const args = [
       "run",
       "--detach",
@@ -92,15 +96,14 @@ export class DockerEngine implements ContainerEngine {
   }
 
   exec(handle: string, command: string, opts: ExecOptions): Promise<number> {
-    const shell = opts.shell ?? "bash";
     const args = [
       "exec",
       "--workdir",
       opts.cwd,
       ...envFlags(opts.env ?? {}),
       handle,
-      shell,
-      "-lc",
+      // Fail-fast flags matching GitHub's runner (see shellInvocation).
+      ...shellInvocation(opts.shell),
       command,
     ];
     return dockerInherit(args);

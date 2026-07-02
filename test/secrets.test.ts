@@ -28,6 +28,13 @@ describe("parseSecrets", () => {
     });
   });
 
+  // Regression: a quoted value followed by an inline comment used to keep the
+  // quotes (TOKEN="abc" # note -> `"abc"`).
+  it("unquotes a quoted value that has a trailing inline comment", () => {
+    expect(parseSecrets('TOKEN="abc" # note')).toEqual({ TOKEN: "abc" });
+    expect(parseSecrets("KEY='p@ss' # rotate monthly")).toEqual({ KEY: "p@ss" });
+  });
+
   it("rejects malformed lines and invalid names", () => {
     expect(() => parseSecrets("NO_EQUALS")).toThrow(PitstopError);
     expect(() => parseSecrets("1BAD=x")).toThrow(/Invalid secret name/);

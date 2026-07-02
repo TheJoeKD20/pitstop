@@ -7,6 +7,8 @@
  * we say plainly in the docs and in `doctor`.
  */
 
+import { PitstopError } from "../errors.js";
+
 const RUNNER_IMAGE_MAP: Record<string, string> = {
   "ubuntu-latest": "catthehacker/ubuntu:act-latest",
   "ubuntu-24.04": "catthehacker/ubuntu:act-24.04",
@@ -30,6 +32,20 @@ function firstLabel(runsOn: string | string[]): string {
 }
 
 /**
+ * Reject image references that could be misread as docker flags when spliced
+ * into a `docker run` argv (leading `-`) or that are plainly not image refs
+ * (empty, embedded whitespace). Returns the value unchanged when it's safe.
+ */
+export function assertSafeImageRef(image: string, source: string): string {
+  if (image.trim() === "" || image.startsWith("-") || /\s/.test(image)) {
+    throw new PitstopError(`Invalid container image ${source}: "${image}".`, {
+      hint: "An image reference can't be empty, start with '-', or contain whitespace — docker would read a value like that as a flag, not an image.",
+    });
+  }
+  return image;
+}
+
+/**
  * Resolve the image to use for a job. Precedence:
  *   1. an explicit `--image` override
  *   2. the job's `container:` image
@@ -42,11 +58,15 @@ export function resolveImage(opts: {
   runsOn: string | string[];
 }): ResolvedImage {
   if (opts.override) {
-    return { image: opts.override, reason: "from --image", approximate: false };
+    return {
+      image: assertSafeImageRef(opts.override, "from --image"),
+      reason: "from --image",
+      approximate: false,
+    };
   }
   if (opts.jobContainer) {
     return {
-      image: opts.jobContainer,
+      image: assertSafeImageRef(opts.jobContainer, "from the job's `container:`"),
       reason: "from the job's container: image",
       approximate: false,
     };

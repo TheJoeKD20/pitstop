@@ -201,10 +201,10 @@ DEPLOY_MESSAGE="shipped from the pit"
 | `container:` image override | ✅ |
 | `.secrets` injection | ✅ |
 | Marketplace `uses:` actions | ⚠️ skipped with a notice |
-| `if:` conditions | ⚠️ **parsed but not evaluated — guarded steps run unconditionally.** Watch for deploy/publish steps behind `if:` before running a job with real secrets |
+| `if:` conditions | ⚠️ skipped with a notice (not evaluated yet) |
 | `GITHUB_ENV` / `GITHUB_OUTPUT` / `GITHUB_PATH` file commands | ❌ not set — steps writing to them fail ("ambiguous redirect") and cross-step env doesn't propagate |
 | `defaults.run.working-directory` / `defaults.run.shell` | ❌ ignored |
-| Reusable-workflow jobs (job-level `uses:`) | ❌ a file containing one currently fails to parse |
+| Reusable-workflow jobs (job-level `uses:`) | ⚠️ job skipped with a notice; the rest of the file works |
 | `services:` / `strategy:` / `timeout-minutes` | ❌ ignored |
 | `matrix:` builds | 🗺️ roadmap |
 | Full Actions expression engine (`${{ }}`) | 🗺️ roadmap |

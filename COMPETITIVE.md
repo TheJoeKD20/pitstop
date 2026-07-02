@@ -27,7 +27,7 @@ print a message *and a next step*).
 
 | Tool | What it does | Pause mid-run? | Shell at a step's exact state? | Reuses your YAML? |
 | --- | --- | :---: | :---: | :---: |
-| **Pitstop** | Run a job locally **and breakpoint any step** | ✅ | ✅ | ✅ (v0.1 subset — see the README's supported-features table; a file with a reusable-workflow job doesn't parse yet) |
+| **Pitstop** | Run a job locally **and breakpoint any step** | ✅ | ✅ | ✅ (v0.1 subset — see the README's supported-features table; reusable-workflow jobs are skipped with a notice) |
 | [`act`](https://github.com/nektos/act) | Runs GitHub Actions locally | ❌ | ❌ | ✅ |
 | [Dagger](https://dagger.io) | Programmable CI engine / SDK | ❌ | ⚠️ (terminal in a Dagger pipeline, not your YAML) | ❌ (rewrite required) |
 | [`gitlab-ci-local`](https://github.com/firecow/gitlab-ci-local) | Runs GitLab pipelines locally | ❌ | ❌ | ✅ (GitLab) |

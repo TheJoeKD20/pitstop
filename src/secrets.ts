@@ -44,12 +44,12 @@ export function parseSecrets(contents: string): Record<string, string> {
     }
 
     let value = line.slice(eq + 1).trim();
-    if (
-      value.length >= 2 &&
-      ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
+    const quote = value.startsWith('"') || value.startsWith("'") ? value[0]! : null;
+    const closing = quote ? value.indexOf(quote, 1) : -1;
+    if (quote && closing !== -1) {
+      // Quoted value: take the quoted contents and drop anything after the
+      // closing quote (e.g. a trailing `# comment`) — never keep the quotes.
+      value = value.slice(1, closing);
     } else {
       // Strip an inline comment from an unquoted value.
       const hash = value.indexOf(" #");
