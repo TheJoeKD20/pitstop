@@ -99,6 +99,31 @@ describe("parseWorkflowDocument", () => {
     expect(wf.jobs.c!.needs).toEqual(["a", "b"]);
   });
 
+  it("parses a job-level uses: as a non-runnable job without breaking the file", () => {
+    const wf = parseWorkflowDocument(
+      doc({
+        build: {
+          "runs-on": "ubuntu-latest",
+          steps: [{ id: "compile", run: "npm run build" }],
+        },
+        release: {
+          uses: "org/repo/.github/workflows/release.yml@main",
+          needs: "build",
+        },
+      }),
+      "wf.yml",
+    );
+
+    // The reusable job is represented, marked by `uses`, and has no steps.
+    expect(wf.jobs.release!.uses).toBe("org/repo/.github/workflows/release.yml@main");
+    expect(wf.jobs.release!.runsOn).toBeUndefined();
+    expect(wf.jobs.release!.steps).toEqual([]);
+    expect(wf.jobs.release!.needs).toEqual(["build"]);
+
+    // ...and the rest of the file is still fully usable.
+    expect(wf.jobs.build!.steps[0]!.run).toBe("npm run build");
+  });
+
   it("reads a container image from a string or object", () => {
     const wf = parseWorkflowDocument(
       doc({
@@ -136,6 +161,21 @@ describe("parseWorkflowDocument", () => {
       expect(() =>
         parseWorkflowDocument(doc({ a: { "runs-on": "x", steps: "nope" } }), "wf.yml"),
       ).toThrow(/not a list/);
+    });
+
+    it("rejects a step with neither run: nor uses:", () => {
+      expect(() =>
+        parseWorkflowDocument(
+          doc({ a: { "runs-on": "x", steps: [{ name: "Broken", env: { X: "1" } }] } }),
+          "wf.yml",
+        ),
+      ).toThrow(/no `run:` command and no `uses:` action/);
+    });
+
+    it("rejects a step whose run: is not a string instead of dropping it", () => {
+      expect(() =>
+        parseWorkflowDocument(doc({ a: { "runs-on": "x", steps: [{ run: 123 }] } }), "wf.yml"),
+      ).toThrow(PitstopError);
     });
   });
 });

@@ -62,12 +62,24 @@ function parseStep(raw: unknown, index: number): WorkflowStep {
     id = `step-${index + 1}`;
   }
 
+  const run = typeof step.run === "string" ? step.run : undefined;
+  const uses = typeof step.uses === "string" ? step.uses : undefined;
+  if (run === undefined && uses === undefined) {
+    const label = name ? `Step "${name}"` : `Step ${index + 1}`;
+    throw new PitstopError(`${label} has no \`run:\` command and no \`uses:\` action.`, {
+      hint:
+        step.run !== undefined
+          ? "`run:` must be a string of shell commands. Quote the value if YAML parsed it as a number or boolean."
+          : "Every step needs either a `run:` command or a `uses:` action reference.",
+    });
+  }
+
   return {
     id,
     hasExplicitId: explicitId,
     name,
-    run: typeof step.run === "string" ? step.run : undefined,
-    uses: typeof step.uses === "string" ? step.uses : undefined,
+    run,
+    uses,
     shell: typeof step.shell === "string" ? step.shell : undefined,
     env: toStringRecord(step.env, `steps[${index}].env`),
     with: toStringRecord(step.with, `steps[${index}].with`),
@@ -101,6 +113,26 @@ function parseJob(jobId: string, raw: unknown): WorkflowJob {
     });
   }
   const job = raw as Record<string, unknown>;
+
+  // A job-level `uses:` calls a reusable workflow. Pitstop v0.1 can't run it,
+  // but it must not make the rest of the file unusable — represent it as a
+  // non-runnable job so `list` shows it and other jobs still run.
+  if (typeof job.uses === "string") {
+    let needs: string[] = [];
+    if (typeof job.needs === "string") {
+      needs = [job.needs];
+    } else if (Array.isArray(job.needs)) {
+      needs = job.needs.map(String);
+    }
+    return {
+      id: jobId,
+      name: typeof job.name === "string" ? job.name : undefined,
+      uses: job.uses,
+      needs,
+      env: {},
+      steps: [],
+    };
+  }
 
   const runsOn = job["runs-on"];
   if (runsOn == null) {

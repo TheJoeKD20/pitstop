@@ -10,7 +10,7 @@
 
 <!-- badges -->
 [![CI](https://github.com/TheJoeKD20/pitstop/actions/workflows/ci.yml/badge.svg)](https://github.com/TheJoeKD20/pitstop/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/pitstop.svg)](https://www.npmjs.com/package/pitstop)
+[![install from GitHub](https://img.shields.io/badge/install-github%3ATheJoeKD20%2Fpitstop-cb3837.svg)](#-quick-start)
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 [![platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20WSL-informational.svg)](#-requirements)
 [![tested on every PR](https://img.shields.io/badge/tested-every%20PR-3fb950.svg)](https://github.com/TheJoeKD20/pitstop/actions/workflows/ci.yml)
@@ -58,8 +58,8 @@ locally — a huge step — but they still run the whole thing top to bottom. Wh
 step fails, you're back to adding debug output and re-running.
 
 **Pitstop adds the one thing missing: a breakpoint.** Pause before any step, drop
-into a real shell inside the runner container at the exact state that step would
-see, poke around, edit files, fix the env, and resume — all without leaving your
+into a real shell inside the runner container at the state that step would
+see, poke around, edit files, and resume — all without leaving your
 terminal.
 
 ---
@@ -67,8 +67,8 @@ terminal.
 ## 🎯 Why Pitstop
 
 - **🎯 A real breakpoint, not just a local run.** Pause *before any step* and land in the runner's shell with the exact environment, secrets and working directory that step would have. This is the feature `act` doesn't have.
-- **🔁 Fix and retry without the commit loop.** Edit a file or an env var in the paused container and re-run just that step. No commit, no push, no waiting on a queue.
-- **🔐 Your real secrets, injected locally.** A gitignored `.secrets` file is loaded straight into the container, so your breakpoint shell sees the same values your step does — never committed, never logged.
+- **🔁 Fix and retry without the commit loop.** Edit a file in the paused container and re-run just that step. No commit, no push, no waiting on a queue. (File edits persist across the retry; shell `export`s die with the breakpoint shell — put env changes in a file your step sources, or in the workflow YAML.)
+- **🔐 Your real secrets, injected locally.** A gitignored `.secrets` file is loaded straight into the container, so your breakpoint shell sees the same values your step does — never committed, and Pitstop itself never prints the values. (They're ordinary env vars inside the container, though: a step running `env` or `set -x` will echo them, and they're visible in host process listings while a step runs.)
 - **📖 Meets you where you already are.** It reads your existing `.github/workflows/*.yml`. There's no new pipeline DSL to learn and nothing to rewrite.
 - **🗣️ Plain-language errors by default.** Every failure tells you what went wrong *and the next thing to do* — `pitstop doctor` checks your setup, and `--dry-run` shows the plan before anything starts.
 
@@ -77,8 +77,9 @@ terminal.
 ## 🚀 Quick start
 
 ```bash
-# 1. Install (Node 18+)
-npm install -g pitstop
+# 1. Install (Node 18+) — from GitHub: the npm name `pitstop` belongs to an
+#    unrelated package, so `npm install -g pitstop` installs the wrong thing.
+npm install -g github:TheJoeKD20/pitstop
 
 # 2. Check your machine is ready (Docker running, workflows found)
 pitstop doctor
@@ -94,7 +95,7 @@ When Pitstop hits the breakpoint it prints a banner and offers a menu:
 
 ```
 ⏸  BREAKPOINT  before: Unit tests
-What now?  r)un this step   s)hell   k)skip   a)bort >
+What now?  r (run this step)   s (open a shell)   k (skip this step)   a (abort) >
 ```
 
 Press **`s`** to drop into the container, fix whatever's broken, `exit`, then
@@ -200,6 +201,11 @@ DEPLOY_MESSAGE="shipped from the pit"
 | `container:` image override | ✅ |
 | `.secrets` injection | ✅ |
 | Marketplace `uses:` actions | ⚠️ skipped with a notice |
+| `if:` conditions | ⚠️ skipped with a notice (not evaluated yet) |
+| `GITHUB_ENV` / `GITHUB_OUTPUT` / `GITHUB_PATH` file commands | ❌ not set — steps writing to them fail ("ambiguous redirect") and cross-step env doesn't propagate |
+| `defaults.run.working-directory` / `defaults.run.shell` | ❌ ignored |
+| Reusable-workflow jobs (job-level `uses:`) | ⚠️ job skipped with a notice; the rest of the file works |
+| `services:` / `strategy:` / `timeout-minutes` | ❌ ignored |
 | `matrix:` builds | 🗺️ roadmap |
 | Full Actions expression engine (`${{ }}`) | 🗺️ roadmap |
 | GitLab CI / other providers | 🗺️ roadmap |

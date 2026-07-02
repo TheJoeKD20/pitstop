@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { resolveImage, FALLBACK_IMAGE } from "../src/runner/images.js";
+import { PitstopError } from "../src/errors.js";
+import { assertSafeImageRef, resolveImage, FALLBACK_IMAGE } from "../src/runner/images.js";
+import { DockerEngine } from "../src/runner/docker.js";
 
 describe("resolveImage", () => {
   it("honours an explicit override above everything", () => {
@@ -31,5 +33,42 @@ describe("resolveImage", () => {
     const unknown = resolveImage({ runsOn: "some-custom-runner" });
     expect(unknown.image).toBe(FALLBACK_IMAGE);
     expect(unknown.approximate).toBe(true);
+  });
+
+  it("rejects flag-like or whitespace-containing image values", () => {
+    expect(() => resolveImage({ override: "--privileged", runsOn: "ubuntu-latest" })).toThrow(
+      PitstopError,
+    );
+    expect(() => resolveImage({ override: "-rm", runsOn: "ubuntu-latest" })).toThrow(
+      /Invalid container image from --image/,
+    );
+    expect(() =>
+      resolveImage({ jobContainer: "--privileged ubuntu:22.04", runsOn: "ubuntu-latest" }),
+    ).toThrow(PitstopError);
+    expect(() => resolveImage({ jobContainer: " ", runsOn: "ubuntu-latest" })).toThrow(
+      PitstopError,
+    );
+  });
+
+  it("still accepts ordinary image references", () => {
+    expect(() => assertSafeImageRef("node:20", "test")).not.toThrow();
+    expect(() =>
+      assertSafeImageRef("ghcr.io/org/image@sha256:abc123", "test"),
+    ).not.toThrow();
+  });
+});
+
+describe("DockerEngine.start image guard", () => {
+  it("refuses a flag-like image before touching the docker argv", async () => {
+    const engine = new DockerEngine();
+    await expect(
+      engine.start({
+        image: "-rm",
+        name: "pitstop-test",
+        workspaceHost: "/host",
+        workspaceContainer: "/github/workspace",
+        env: {},
+      }),
+    ).rejects.toThrow(PitstopError);
   });
 });

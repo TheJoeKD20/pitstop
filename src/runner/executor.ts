@@ -57,6 +57,64 @@ function stepCwd(step: WorkflowStep): string {
   return `${WORKSPACE_CONTAINER}/${wd}`;
 }
 
+/** The subset of `process` the signal cleanup needs — swappable in tests. */
+export interface SignalTarget {
+  on(event: "SIGINT" | "SIGTERM", listener: () => void): unknown;
+  removeListener(event: "SIGINT" | "SIGTERM", listener: () => void): unknown;
+}
+
+export interface SignalCleanupOptions {
+  engine: ContainerEngine;
+  /** Container handle returned by {@link ContainerEngine.start}. */
+  handle: string;
+  containerName: string;
+  /** When true, mirror `--keep`: leave the container running on interrupt. */
+  keepContainer: boolean;
+  reporter: ExecutorReporter;
+  /** Signal source; defaults to the real `process`. */
+  proc?: SignalTarget;
+  /** Called with the exit code once cleanup finishes; defaults to `process.exit`. */
+  exit?: (code: number) => void;
+}
+
+/**
+ * Remove the job container if the user interrupts the run (Ctrl-C / SIGTERM) —
+ * without this, the `sleep infinity` container leaks because the executor's
+ * `finally` never runs when the process is killed. Exits 130 for SIGINT and
+ * 143 for SIGTERM, matching shell convention. Returns a function that detaches
+ * the handlers (call it once the normal cleanup path owns the container again).
+ */
+export function registerSignalCleanup(opts: SignalCleanupOptions): () => void {
+  const proc: SignalTarget = opts.proc ?? process;
+  const exit = opts.exit ?? ((code: number) => process.exit(code));
+  let triggered = false;
+
+  const onSignal = (signal: "SIGINT" | "SIGTERM"): void => {
+    if (triggered) return;
+    triggered = true;
+    const code = signal === "SIGINT" ? 130 : 143;
+    opts.reporter.warn(`Received ${signal} — stopping.`);
+    const cleanup = (async () => {
+      if (opts.keepContainer) {
+        opts.reporter.info(`Container left running: ${opts.containerName}`);
+        opts.reporter.dim(`Remove with:  docker rm -f ${opts.containerName}`);
+        return;
+      }
+      await opts.engine.remove(opts.handle);
+    })();
+    void cleanup.catch(() => undefined).then(() => exit(code));
+  };
+
+  const onInt = (): void => onSignal("SIGINT");
+  const onTerm = (): void => onSignal("SIGTERM");
+  proc.on("SIGINT", onInt);
+  proc.on("SIGTERM", onTerm);
+  return () => {
+    proc.removeListener("SIGINT", onInt);
+    proc.removeListener("SIGTERM", onTerm);
+  };
+}
+
 /**
  * The interactive menu shown at a breakpoint (before a step runs). Returns the
  * user's decision about whether to run the step.
@@ -126,7 +184,16 @@ export async function runJob(opts: RunJobOptions): Promise<RunJobResult> {
     env: containerEnv,
   });
 
-  const runnable = job.steps.filter((s) => s.run !== undefined);
+  // From here the container exists — make sure Ctrl-C / SIGTERM can't leak it.
+  const releaseSignals = registerSignalCleanup({
+    engine: opts.engine,
+    handle,
+    containerName: opts.containerName,
+    keepContainer: opts.keepContainer,
+    reporter: opts.reporter,
+  });
+
+  const runnable = job.steps.filter((s) => s.run !== undefined && s.if === undefined);
   const total = runnable.length;
 
   try {
@@ -137,6 +204,16 @@ export async function runJob(opts: RunJobOptions): Promise<RunJobResult> {
         if (step.uses) {
           opts.reporter.warn(`Skipping uses: ${step.uses} (action resolution is on the roadmap, not in v0.1).`);
         }
+        continue;
+      }
+
+      // v0.1 has no expression engine, so `if:` can't be evaluated. Running a
+      // guarded step anyway (with secrets injected) is the dangerous choice —
+      // skip it loudly instead.
+      if (step.if !== undefined) {
+        opts.reporter.warn(
+          `Skipping ${stepLabel(step)} — guarded by \`if: ${step.if}\`, and Pitstop v0.1 does not evaluate conditions.`,
+        );
         continue;
       }
 
@@ -194,6 +271,7 @@ export async function runJob(opts: RunJobOptions): Promise<RunJobResult> {
 
     return { status: "completed", executedSteps: executed };
   } finally {
+    releaseSignals();
     if (opts.keepContainer) {
       opts.reporter.info(`Container left running: ${opts.containerName}`);
       opts.reporter.dim(`Attach with:  docker exec -it ${opts.containerName} bash`);
