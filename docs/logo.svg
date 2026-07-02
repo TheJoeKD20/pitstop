@@ -1,0 +1,14 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pitstop logo">
+  <circle cx="60" cy="60" r="56" fill="#0d1117" stroke="#d6336c" stroke-width="4"/>
+  <circle cx="60" cy="60" r="40" fill="none" stroke="#30363d" stroke-width="10"/>
+  <!-- pause bars: the breakpoint motif -->
+  <rect x="46" y="42" width="9" height="36" rx="3" fill="#d6336c"/>
+  <rect x="65" y="42" width="9" height="36" rx="3" fill="#d6336c"/>
+  <!-- wheel nuts -->
+  <g fill="#c9d1d9">
+    <circle cx="60" cy="24" r="3.2"/>
+    <circle cx="60" cy="96" r="3.2"/>
+    <circle cx="24" cy="60" r="3.2"/>
+    <circle cx="96" cy="60" r="3.2"/>
+  </g>
+</svg>

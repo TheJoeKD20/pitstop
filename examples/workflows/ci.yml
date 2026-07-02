@@ -1,0 +1,46 @@
+# A small but realistic workflow to try Pitstop against.
+#
+#   pitstop list -w examples/workflows/ci.yml
+#   pitstop run test -w examples/workflows/ci.yml --break unit --dry-run
+#
+name: Example CI
+
+env:
+  CI_GREETING: hello-from-workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - id: install
+        name: Install dependencies
+        run: npm ci
+      - id: compile
+        name: Compile
+        run: npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [build]
+    env:
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - id: install
+        name: Install dependencies
+        run: npm ci
+      - id: lint
+        name: Lint
+        run: npm run lint
+      - id: unit
+        name: Unit tests
+        run: npm test
+      - id: smoke
+        name: Smoke test the built binary
+        working-directory: ./packages/cli
+        run: |
+          node ./dist/cli.js --version
+          echo "greeting is $CI_GREETING"

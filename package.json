@@ -1,0 +1,57 @@
+{
+  "name": "pitstop",
+  "version": "0.1.0",
+  "description": "Debug your CI in the pit, not on the track. Run real CI jobs locally, set a breakpoint on any step, drop into a shell with the exact env/filesystem state, fix it, and resume.",
+  "keywords": [
+    "ci",
+    "github-actions",
+    "debugger",
+    "breakpoint",
+    "docker",
+    "local-ci",
+    "workflow",
+    "devtools"
+  ],
+  "homepage": "https://github.com/TheJoeKD20/pitstop#readme",
+  "bugs": {
+    "url": "https://github.com/TheJoeKD20/pitstop/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheJoeKD20/pitstop.git"
+  },
+  "license": "MIT",
+  "author": "Joe Kane <joe@joekane.org> (https://joekane.org)",
+  "type": "module",
+  "bin": {
+    "pitstop": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9"
+  }
+}
