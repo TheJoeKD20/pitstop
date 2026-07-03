@@ -77,18 +77,20 @@ terminal.
 ## 🚀 Quick start
 
 ```bash
-# 1. Install (Node 18+) — from GitHub: the npm name `pitstop` belongs to an
-#    unrelated package, so `npm install -g pitstop` installs the wrong thing.
-npm install -g github:TheJoeKD20/pitstop
+# 1. Install into your project (Node 18+) — from GitHub: the npm name `pitstop`
+#    belongs to an unrelated package, so `npm install pitstop` installs the
+#    wrong thing. (Skip -g: npm has a long-standing bug where global installs
+#    from git never run the build.)
+npm install -D github:TheJoeKD20/pitstop
 
 # 2. Check your machine is ready (Docker running, workflows found)
-pitstop doctor
+npx pitstop doctor
 
 # 3. See what's in your workflow
-pitstop list
+npx pitstop list
 
 # 4. Run a job, pausing before the step you're debugging
-pitstop run test --break unit
+npx pitstop run test --break unit
 ```
 
 When Pitstop hits the breakpoint it prints a banner and offers a menu:
